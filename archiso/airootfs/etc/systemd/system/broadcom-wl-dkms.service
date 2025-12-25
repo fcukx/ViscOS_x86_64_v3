@@ -1,0 +1,13 @@
+[Unit]
+Description=Ensure Broadcom wl module is built and loaded
+After=local-fs.target systemd-modules-load.service
+Before=network-pre.target NetworkManager.service
+Wants=network-pre.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/bash -lc 'set -euo pipefail; kver="$(uname -r)"; if ! modinfo -k "$kver" wl >/dev/null 2>&1; then dkms autoinstall -k "$kver"; fi; modprobe wl'
+
+[Install]
+WantedBy=multi-user.target
