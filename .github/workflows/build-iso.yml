@@ -29,17 +29,15 @@ jobs:
             "
 
       - name: Verify ISO output exists
-        shell: bash
         run: |
           set -euo pipefail
-          shopt -s nullglob globstar
-          iso_list=(out/**/*.iso)
-          if (( ${#iso_list[@]} == 0 )); then
+          mapfile -t iso_list < <(find out -type f -name '*.iso' 2>/dev/null | sort)
+          if (( \${#iso_list[@]} == 0 )); then
             echo "No ISO artifacts found under ./out" >&2
             exit 1
           fi
           printf 'Found ISO artifact(s):\n'
-          printf '  %s\n' "${iso_list[@]}"
+          printf '  %s\n' "\${iso_list[@]}"
 
       - name: Upload ISO artifact
         uses: actions/upload-artifact@v4
