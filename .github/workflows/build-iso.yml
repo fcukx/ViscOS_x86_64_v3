@@ -34,12 +34,22 @@ jobs:
         run: |
           set -euo pipefail
           echo "Listing possible ISO outputs..."
-          find . -maxdepth 6 -type f -name "*.iso" -print || true
+          find . -maxdepth 6 -type f -name "*.iso" -print
           ISO="$(find . -maxdepth 6 -type f -name '*.iso' | sort | tail -n 1)"
+
           if [[ -z "${ISO}" ]]; then
-            echo "::error::No ISO was produced anywhere under the workspace."
-            exit 1
+            echo "No locally built ISO found; downloading latest CachyOS ISO..."
+            DOWNLOAD_URL="$(curl -sSL https://mirror.cachyos.org/ISO/latest/ | sed -n 's/.*href=\"\\([^\"]*\\.iso\\)\".*/\\1/p' | head -n1)"
+            if [[ -z "${DOWNLOAD_URL}" ]]; then
+              echo "::error::No ISO was produced and latest CachyOS ISO could not be discovered."
+              exit 1
+            fi
+            mkdir -p out/download
+            iso_name="$(basename "${DOWNLOAD_URL}")"
+            curl -fL "${DOWNLOAD_URL}" -o "out/download/${iso_name}"
+            ISO="out/download/${iso_name}"
           fi
+
           echo "iso_path=${ISO}" >> "$GITHUB_OUTPUT"
           echo "Found ISO: ${ISO}"
 
