@@ -1,5 +1,4 @@
 micro
-paru
 wget
 powertop
 glances

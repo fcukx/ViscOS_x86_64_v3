@@ -16,7 +16,5 @@ telegram-desktop
 xournalpp
 obsidian
 wezterm
-wezterm-shell-integration
-wezterm-terminfo
 mattermost-desktop
 pdfpc
