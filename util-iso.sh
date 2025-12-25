@@ -221,3 +221,87 @@ gen_iso_fn(){
 
     echo $name
 }
+
+# Attempt to locate the repository slug (owner/repo) using the local git remote
+# configuration. This allows artifact downloads to default to the same
+# repository without requiring an explicit ISO_SOURCE_REPO value.
+resolve_repo_slug() {
+    local remote_url stripped
+
+    if [[ -n ${ISO_SOURCE_REPO:-} ]]; then
+        echo "${ISO_SOURCE_REPO}"
+        return 0
+    fi
+
+    remote_url=$(git -C "${src_dir}" config --get remote.origin.url 2>/dev/null || true)
+    if [[ -z ${remote_url} ]]; then
+        return 1
+    fi
+
+    stripped=${remote_url%.git}
+    stripped=${stripped#git@github.com:}
+    stripped=${stripped#https://github.com/}
+
+    [[ -n ${stripped} ]] && echo "${stripped}" || return 1
+}
+
+# Download the latest cachyos-iso artifact produced by the build-iso workflow
+# using the GitHub CLI. The artifact is placed under ${outFolder}/downloads.
+# Requires gh to be available and authenticated (typically via GITHUB_TOKEN).
+download_latest_cachyos_iso() {
+    local repo_slug run_id download_dir iso_file
+
+    if ! command -v gh >/dev/null 2>&1; then
+        die "GitHub CLI (gh) is required to download ISO artifacts."
+    fi
+
+    repo_slug=$(resolve_repo_slug)
+    if [[ -z ${repo_slug} ]]; then
+        die "Unable to determine repository slug. Set ISO_SOURCE_REPO to owner/repo."
+    fi
+
+    run_id=$(gh run list --workflow build-iso --limit 1 --repo "${repo_slug}" --json databaseId --jq '.[0].databaseId')
+    if [[ -z ${run_id} ]]; then
+        die "No build-iso workflow runs found for ${repo_slug}."
+    fi
+
+    download_dir="${outFolder}/downloads"
+    mkdir -p "${download_dir}"
+
+    msg2 "Downloading cachyos-iso artifact from %s run %s" "${repo_slug}" "${run_id}"
+    gh run download "${run_id}" --repo "${repo_slug}" --name cachyos-iso --dir "${download_dir}" >/dev/null
+
+    iso_file=$(find "${download_dir}" -type f -name '*.iso' | head -n1)
+    if [[ -z ${iso_file} ]]; then
+        die "Artifact downloaded but no ISO file was found under ${download_dir}."
+    fi
+
+    msg "Downloaded ISO available at [%s]" "${iso_file}"
+}
+
+# When invoked directly, attempt to locate a locally built ISO and fall back to
+# downloading the latest cachyos-iso artifact. This keeps the script safe to
+# source during buildiso while enabling standalone usage for ISO retrieval.
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+    set -euo pipefail
+
+    src_dir=${src_dir:-$(pwd)}
+    outFolder=${outFolder:-${src_dir}/out}
+
+    # Load messaging helpers when executed standalone.
+    if ! declare -F msg >/dev/null 2>&1; then
+        [[ -r ${src_dir}/util-msg.sh ]] && source ${src_dir}/util-msg.sh
+    fi
+
+    msg "Listing possible ISO outputs..."
+    mapfile -t local_isos < <(find "${outFolder}" -type f -name '*.iso' 2>/dev/null | sort)
+
+    if (( ${#local_isos[@]} > 0 )); then
+        for iso in "${local_isos[@]}"; do
+            msg2 "Using local ISO: %s" "${iso}"
+        done
+    else
+        msg "No locally built ISO found; downloading latest CachyOS ISO..."
+        download_latest_cachyos_iso
+    fi
+fi
