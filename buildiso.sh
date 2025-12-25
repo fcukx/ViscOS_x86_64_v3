@@ -67,9 +67,6 @@ if [[ -z "${VISCO_ARCH_CONTAINER:-}" ]] && ! command -v pacman >/dev/null 2>&1; 
         -w /workspace \
         "${image}" /bin/bash -lc "set -euo pipefail
           pacman -Syu --noconfirm --needed archiso git sudo gnupg base-devel grub
-          # Populate CachyOS mirrorlists referenced by archiso/pacman.conf
-          curl -sSL https://github.com/CachyOS/CachyOS-PKGBUILDS/raw/master/cachyos-mirrorlist/cachyos-mirrorlist -o /etc/pacman.d/cachyos-mirrorlist
-          cp /etc/pacman.d/cachyos-mirrorlist /etc/pacman.d/cachyos-v3-mirrorlist
           gpg --batch --pinentry-mode=loopback --passphrase '' --quick-generate-key 'CI Builder <ci@example.com>' default default never
           KEYID=\$(gpg --list-secret-keys --with-colons | sed -n 's/^fpr:[^:]*:[^:]*:[^:]*:[^:]*:[^:]*:[^:]*:[^:]*:[^:]*:\\([^:]*\\):.*/\\1/p' | head -n1)
           export GPGKEY=\$KEYID
