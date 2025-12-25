@@ -23,7 +23,7 @@ jobs:
             "$IMAGE" /bin/bash -lc "set -euo pipefail
               pacman -Syu --noconfirm --needed archiso git sudo gnupg base-devel
               gpg --batch --pinentry-mode=loopback --passphrase '' --quick-generate-key 'CI Builder <ci@example.com>' default default never
-              KEYID=\$(gpg --list-secret-keys --with-colons | awk -F: '/^fpr:/ {print $10; exit}')
+              KEYID=\$(gpg --list-secret-keys --with-colons | sed -n 's/^fpr:[^:]*:[^:]*:[^:]*:[^:]*:[^:]*:[^:]*:[^:]*:[^:]*:\\([^:]*\\):.*/\\1/p' | head -n1)
               export GPGKEY=\$KEYID
               ./buildiso.sh
             "
