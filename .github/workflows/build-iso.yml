@@ -39,14 +39,20 @@ jobs:
 
           if [[ -z "${ISO}" ]]; then
             echo "No locally built ISO found; downloading latest CachyOS ISO..."
-            DOWNLOAD_URL="$(curl -sSL https://mirror.cachyos.org/ISO/latest/ | sed -n 's/.*href=\"\\([^\"]*\\.iso\\)\".*/\\1/p' | head -n1)"
-            if [[ -z "${DOWNLOAD_URL}" ]]; then
-              echo "::error::No ISO was produced and latest CachyOS ISO could not be discovered."
-              exit 1
+            BASE_URL="https://mirror.cachyos.org/ISO/latest/"
+            DOWNLOAD_URL="$(curl -fLs "${BASE_URL}" | grep -oE 'href=\"[^\"]+\\.iso[^\"]*\"' | head -n1 | cut -d'\"' -f2)"
+            if [[ -n "${DOWNLOAD_URL}" && "${DOWNLOAD_URL}" != http* ]]; then
+              DOWNLOAD_URL="${BASE_URL%/}/${DOWNLOAD_URL#./}"
             fi
+
+            # Fallback to SourceForge "latest" download if the mirror listing fails or returns no ISO link.
+            if [[ -z "${DOWNLOAD_URL}" ]]; then
+              DOWNLOAD_URL="https://sourceforge.net/projects/cachyos-arch/files/latest/download"
+            fi
+
             mkdir -p out/download
-            iso_name="$(basename "${DOWNLOAD_URL}")"
-            curl -fL "${DOWNLOAD_URL}" -o "out/download/${iso_name}"
+            iso_name="$(basename "${DOWNLOAD_URL%%\?*}")"
+            curl -fL --retry 3 --retry-delay 5 "${DOWNLOAD_URL}" -o "out/download/${iso_name}"
             ISO="out/download/${iso_name}"
           fi
 
