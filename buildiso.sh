@@ -66,7 +66,7 @@ if [[ -z "${VISCO_ARCH_CONTAINER:-}" ]] && ! command -v pacman >/dev/null 2>&1; 
         -v "${src_dir}:/workspace" \
         -w /workspace \
         "${image}" /bin/bash -lc "set -euo pipefail
-          pacman -Syu --noconfirm --needed archiso git sudo gnupg base-devel
+          pacman -Syu --noconfirm --needed archiso git sudo gnupg base-devel grub
           gpg --batch --pinentry-mode=loopback --passphrase '' --quick-generate-key 'CI Builder <ci@example.com>' default default never
           KEYID=\$(gpg --list-secret-keys --with-colons | sed -n 's/^fpr:[^:]*:[^:]*:[^:]*:[^:]*:[^:]*:[^:]*:[^:]*:[^:]*:\\([^:]*\\):.*/\\1/p' | head -n1)
           export GPGKEY=\$KEYID
