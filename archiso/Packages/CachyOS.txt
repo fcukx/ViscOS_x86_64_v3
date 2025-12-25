@@ -49,9 +49,8 @@ inxi
 iptables-nft
 libwnck3
 libxinerama
-lightly-git
 lsb-release
-mlocate
+plocate
 mobile-broadband-provider-info
 net-tools
 ntp

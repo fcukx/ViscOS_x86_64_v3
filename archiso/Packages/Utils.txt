@@ -16,7 +16,6 @@ blueman
 qbittorrent
 firewalld
 fuse2
-grub-customizer
 virt-manager
 virt-viewer
 virt-install
@@ -33,7 +32,6 @@ earlyoom
 distrobox
 docker
 podman
-capnet-assist
 thermald
 imagemagick
 w3m
