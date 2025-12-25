@@ -20,29 +20,29 @@ jobs:
           sudo docker run --rm --privileged \
             -v "${{ github.workspace }}:/workspace" \
             -w /workspace \
-            "$IMAGE" /bin/bash -lc "set -euo pipefail
+            "$IMAGE" /bin/bash -lc 'set -euo pipefail
               pacman -Syu --noconfirm --needed archiso git sudo gnupg base-devel grub curl ca-certificates tar
-              gpg --batch --pinentry-mode=loopback --passphrase '' --quick-generate-key 'CI Builder <ci@example.com>' default default never
-              KEYID=\$(gpg --list-secret-keys --with-colons | sed -n 's/^fpr:[^:]*:[^:]*:[^:]*:[^:]*:[^:]*:[^:]*:[^:]*:[^:]*:\\([^:]*\\):.*/\\1/p' | head -n1)
-              export GPGKEY=\$KEYID
+              gpg --batch --pinentry-mode=loopback --passphrase "" --quick-generate-key "CI Builder <ci@example.com>" default default never
+              KEYID=$(gpg --list-secret-keys --with-colons | sed -n "s/^fpr:[^:]*:[^:]*:[^:]*:[^:]*:[^:]*:[^:]*:[^:]*:[^:]*:\\([^:]*\\):.*/\\1/p" | head -n1)
+              export GPGKEY=$KEYID
               # Prepare CachyOS keyring and mirrorlists required by archiso/pacman.conf
               pacman-key --init
               pacman-key --populate archlinux
               pacman-key --recv-keys F3B607488DB35A47 --keyserver keyserver.ubuntu.com
               pacman-key --lsign-key F3B607488DB35A47
               repo_dir="https://mirror.cachyos.org/repo/x86_64/cachyos"
-              html="\$(curl -fsSL \"$repo_dir/\")"
-              keyring_pkg="\$(printf \"%s\" \"$html\" | grep -oE 'cachyos-keyring-[^"]+\\.pkg\\.tar\\.zst' | sort -V | tail -1)"
-              mirror_pkg="\$(printf \"%s\" \"$html\" | grep -oE 'cachyos-mirrorlist-[^"]+\\.pkg\\.tar\\.zst' | sort -V | tail -1)"
-              v3_pkg="\$(printf \"%s\" \"$html\" | grep -oE 'cachyos-v3-mirrorlist-[^"]+\\.pkg\\.tar\\.zst' | sort -V | tail -1)"
-              v4_pkg="\$(printf \"%s\" \"$html\" | grep -oE 'cachyos-v4-mirrorlist-[^"]+\\.pkg\\.tar\\.zst' | sort -V | tail -1)"
+              html="$(curl -fsSL "${repo_dir}/")"
+              keyring_pkg="$(printf "%s" "$html" | grep -oE "cachyos-keyring-[^\"]+\\.pkg\\.tar\\.zst" | sort -V | tail -1)"
+              mirror_pkg="$(printf "%s" "$html" | grep -oE "cachyos-mirrorlist-[^\"]+\\.pkg\\.tar\\.zst" | sort -V | tail -1)"
+              v3_pkg="$(printf "%s" "$html" | grep -oE "cachyos-v3-mirrorlist-[^\"]+\\.pkg\\.tar\\.zst" | sort -V | tail -1)"
+              v4_pkg="$(printf "%s" "$html" | grep -oE "cachyos-v4-mirrorlist-[^\"]+\\.pkg\\.tar\\.zst" | sort -V | tail -1)"
               pacman -U --noconfirm \
-                "$repo_dir/$keyring_pkg" \
-                "$repo_dir/$mirror_pkg" \
-                "$repo_dir/$v3_pkg" \
-                "$repo_dir/$v4_pkg"
+                "${repo_dir}/${keyring_pkg}" \
+                "${repo_dir}/${mirror_pkg}" \
+                "${repo_dir}/${v3_pkg}" \
+                "${repo_dir}/${v4_pkg}"
               ./buildiso.sh
-            "
+            '
 
       - name: Verify ISO output exists
         run: |
