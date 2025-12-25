@@ -21,15 +21,32 @@ jobs:
             -v "${{ github.workspace }}:/workspace" \
             -w /workspace \
             "$IMAGE" /bin/bash -lc "set -euo pipefail
-              pacman -Syu --noconfirm --needed archiso git sudo gnupg base-devel
+              pacman -Syu --noconfirm --needed curl tar git archiso sudo gnupg base-devel grub
+              curl -L https://mirror.cachyos.org/cachyos-repo.tar.xz -o /tmp/cachyos-repo.tar.xz
+              tar -xf /tmp/cachyos-repo.tar.xz -C /tmp
+              /tmp/cachyos-repo/cachyos-repo.sh
               gpg --batch --pinentry-mode=loopback --passphrase '' --quick-generate-key 'CI Builder <ci@example.com>' default default never
               KEYID=\$(gpg --list-secret-keys --with-colons | sed -n 's/^fpr:[^:]*:[^:]*:[^:]*:[^:]*:[^:]*:[^:]*:[^:]*:[^:]*:\\([^:]*\\):.*/\\1/p' | head -n1)
               export GPGKEY=\$KEYID
               ./buildiso.sh
             "
 
+      - name: Locate ISO
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t iso_list < <(find . -maxdepth 8 -type f -name "*.iso" -print | sort)
+          if (( ${#iso_list[@]} == 0 )); then
+            echo "::error::No ISO produced anywhere under the workspace."
+            exit 1
+          fi
+          echo "Found ISO files:"
+          printf '%s\n' "${iso_list[@]}"
+          echo "ISO_PATH=${iso_list[-1]}" >> "$GITHUB_ENV"
+
       - name: Upload ISO artifact
         uses: actions/upload-artifact@v4
         with:
-          name: cachyos-iso
-          path: out/**/*.iso
+          name: viscoos-iso
+          path: ${{ env.ISO_PATH }}
+          if-no-files-found: error
