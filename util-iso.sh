@@ -133,6 +133,10 @@ prepare_profile(){
 
     info "Profile: [%s]" "${profile}"
 
+    if [[ "${profile}" != "kde" ]]; then
+        die "Unsupported profile [%s]. The current package lists only cover 'kde'." "${profile}"
+    fi
+
     change_grub_version "$(date +%y%m%d)"
 
     # Fetch up-to-date version of CachyOS repo mirrorlist
@@ -141,28 +145,7 @@ prepare_profile(){
     generate_motd
 
     rm -f ${src_dir}/archiso/airootfs/etc/systemd/system/display-manager.service
-    if [ "$profile" == "kde" ]; then
-        cp ${src_dir}/archiso/packages_kde.x86_64 ${src_dir}/archiso/packages.x86_64
-        ln -sf /usr/lib/systemd/system/sddm.service ${src_dir}/archiso/airootfs/etc/systemd/system/display-manager.service
-    elif [ "$profile" == "gnome" ]; then
-        rm -f ${src_dir}/archiso/airootfs/etc/motd
-        rm -rf ${src_dir}/archiso/airootfs/etc/gdm
-        generate_gdm_config
-        cp ${src_dir}/archiso/packages_gnome.x86_64 ${src_dir}/archiso/packages.x86_64
-        ln -sf /usr/lib/systemd/system/gdm.service ${src_dir}/archiso/airootfs/etc/systemd/system/display-manager.service
-    elif [ "$profile" == "xfce" ]; then
-        cp ${src_dir}/archiso/packages_xfce.x86_64 ${src_dir}/archiso/packages.x86_64
-        ln -sf /usr/lib/systemd/system/lightdm.service ${src_dir}/archiso/airootfs/etc/systemd/system/display-manager.service
-    elif [ "$profile" == "openbox" ]; then
-        rm -f ${src_dir}/archiso/airootfs/etc/skel/.Xresources
-        cp ${src_dir}/archiso/packages_openbox.x86_64 ${src_dir}/archiso/packages.x86_64
-        ln -sf /usr/lib/systemd/system/lightdm.service ${src_dir}/archiso/airootfs/etc/systemd/system/display-manager.service
-    elif [ "$profile" == "wayfire" ]; then
-        cp ${src_dir}/archiso/packages_wayfire.x86_64 ${src_dir}/archiso/packages.x86_64
-        #ln -sf /usr/lib/systemd/system/lightdm.service ${src_dir}/archiso/airootfs/etc/systemd/system/display-manager.service
-    else
-        die "Unknown profile: [%s]" "${profile}"
-    fi
+    ln -sf /usr/lib/systemd/system/sddm.service ${src_dir}/archiso/airootfs/etc/systemd/system/display-manager.service
 
     generate_environment "${profile}"
 
