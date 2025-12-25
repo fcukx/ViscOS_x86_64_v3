@@ -38,6 +38,42 @@ usage() {
 
 orig_argv=("$@")
 
+# If pacman is unavailable (e.g. Ubuntu/Codespaces host), re-run inside an
+# Arch container when a compatible container runtime is present.
+if [[ -z "${VISCO_ARCH_CONTAINER:-}" ]] && ! command -v pacman >/dev/null 2>&1; then
+    container_runtime=
+    if command -v docker >/dev/null 2>&1; then
+        container_runtime="docker"
+    elif command -v podman >/dev/null 2>&1; then
+        container_runtime="podman"
+    fi
+
+    if [[ -z "${container_runtime}" ]]; then
+        die "pacman not found. Install Docker/Podman or run on an Arch-based host to build the ISO."
+    fi
+
+    msg "Re-running inside Arch container via %s" "${container_runtime}"
+    args_str="$(printf ' %q' "${orig_argv[@]}")"
+    image="archlinux:latest"
+    sudo_cmd=()
+    if command -v sudo >/dev/null 2>&1; then
+        sudo_cmd=(sudo)
+    fi
+
+    "${sudo_cmd[@]}" "${container_runtime}" pull "${image}"
+    exec "${sudo_cmd[@]}" "${container_runtime}" run --rm --privileged \
+        -e VISCO_ARCH_CONTAINER=1 \
+        -v "${src_dir}:/workspace" \
+        -w /workspace \
+        "${image}" /bin/bash -lc "set -euo pipefail
+          pacman -Syu --noconfirm --needed archiso git sudo gnupg base-devel
+          gpg --batch --pinentry-mode=loopback --passphrase '' --quick-generate-key 'CI Builder <ci@example.com>' default default never
+          KEYID=\$(gpg --list-secret-keys --with-colons | sed -n 's/^fpr:[^:]*:[^:]*:[^:]*:[^:]*:[^:]*:[^:]*:[^:]*:[^:]*:\\([^:]*\\):.*/\\1/p' | head -n1)
+          export GPGKEY=\$KEYID
+          ./buildiso.sh${args_str}
+        "
+fi
+
 opts='p:cvh'
 
 while getopts "${opts}" arg; do
